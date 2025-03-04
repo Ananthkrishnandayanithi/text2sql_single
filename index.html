@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Insights & Visualizations</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script>
+        async function handleDatabaseChange(event) {
+            const databaseSelect = event.target;
+            const databaseType = databaseSelect.value;
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const originalValue = databaseSelect.dataset.currentValue;
+            
+            try {
+                // Disable the select while processing
+                databaseSelect.disabled = true;
+                loadingOverlay.style.display = 'flex';
+                
+                const response = await fetch('/switch_database', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ database_type: databaseType })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Update the current value on success
+                    databaseSelect.dataset.currentValue = databaseType;
+                    showNotification('success', `Successfully switched to ${databaseType} database`);
+                } else {
+                    // Revert to original value on failure
+                    databaseSelect.value = originalValue;
+                    showNotification('error', data.error || 'Failed to switch database');
+                }
+            } catch (error) {
+                // Revert to original value on error
+                databaseSelect.value = originalValue;
+                showNotification('error', 'Error switching database. Please try again.');
+                console.error('Error:', error);
+            } finally {
+                // Re-enable the select and hide loading overlay
+                databaseSelect.disabled = false;
+                loadingOverlay.style.display = 'none';
+            }
+        }
+        
+        // Add this function to initialize the database selector
+        function initializeDatabaseSelector() {
+            const databaseSelect = document.getElementById('database_type');
+            if (!databaseSelect) return;
+        
+            // Set initial value
+            databaseSelect.dataset.currentValue = databaseSelect.value;
+            
+            // Add change event listener
+            databaseSelect.addEventListener('change', handleDatabaseChange);
+            
+            // Add focus event listener to store the value before change
+            databaseSelect.addEventListener('focus', (event) => {
+                event.target.dataset.previousValue = event.target.value;
+            });
+            
+            // Add error handling for the change event
+            databaseSelect.addEventListener('error', (event) => {
+                const select = event.target;
+                select.value = select.dataset.previousValue;
+                showNotification('error', 'Failed to switch database. Reverting to previous selection.');
+            });
+        }
+        
+        // Enhanced notification system
+        function showNotification(type, message) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(n => n.remove());
+            
+            document.body.appendChild(notification);
+            
+            // Add animation classes
+            notification.classList.add('notification-show');
+            
+            // Remove notification after delay
+            setTimeout(() => {
+                notification.classList.add('notification-hide');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // Initialize everything when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDatabaseSelector();
+        });
+        function updateButtonStates() {
+            const databaseSelect = document.getElementById('database_type');
+            const generateButton = document.querySelector('.primary-button');
+            const schemaButton = document.querySelector('.schema-button-small');
+            
+            // Disable buttons if no database is selected or value is empty
+            const isDisabled = !databaseSelect.value || databaseSelect.value === "";
+            generateButton.disabled = isDisabled;
+            schemaButton.disabled = isDisabled;
+            
+            // Update button styles based on state
+            if (isDisabled) {
+                generateButton.classList.add('button-disabled');
+                schemaButton.classList.add('button-disabled');
+            } else {
+                generateButton.classList.remove('button-disabled');
+                schemaButton.classList.remove('button-disabled');
+            }
+        }
+        async function handleDatabaseChange(event) {
+            const databaseSelect = event.target;
+            const databaseType = databaseSelect.value;
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const originalValue = databaseSelect.dataset.currentValue;
+            
+            // Update button states whenever database selection changes
+            updateButtonStates();
+            
+            try {
+                // Disable the select while processing
+                databaseSelect.disabled = true;
+                loadingOverlay.style.display = 'flex';
+                
+                const response = await fetch('/switch_database', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ database_type: databaseType })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    databaseSelect.dataset.currentValue = databaseType;
+                    showNotification('success', `Successfully switched to ${databaseType} database`);
+                } else {
+                    databaseSelect.value = originalValue;
+                    showNotification('error', data.error || 'Failed to switch database');
+                }
+            } catch (error) {
+                databaseSelect.value = originalValue;
+                showNotification('error', 'Error switching database. Please try again.');
+                console.error('Error:', error);
+            } finally {
+                databaseSelect.disabled = false;
+                loadingOverlay.style.display = 'none';
+                updateButtonStates();
+            }
+        }
+        function initializeDatabaseSelector() {
+            const databaseSelect = document.getElementById('database_type');
+            if (!databaseSelect) return;
+        
+            // Set initial value and update button states
+            databaseSelect.dataset.currentValue = databaseSelect.value;
+            updateButtonStates();
+            
+            // Add change event listener
+            databaseSelect.addEventListener('change', handleDatabaseChange);
+            
+            // Add focus event listener
+            databaseSelect.addEventListener('focus', (event) => {
+                event.target.dataset.previousValue = event.target.value;
+            });
+            
+            // Add error handling
+            databaseSelect.addEventListener('error', (event) => {
+                const select = event.target;
+                select.value = select.dataset.previousValue;
+                showNotification('error', 'Failed to switch database. Reverting to previous selection.');
+                updateButtonStates();
+            });
+            document.getElementById('output').addEventListener('change', function() {
+                if (!this.value) {
+                    this.setCustomValidity('Please select an insight type');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+        }
+
+        function showNotification(type, message) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(n => n.remove());
+            
+            document.body.appendChild(notification);
+            notification.classList.add('notification-show');
+            
+            setTimeout(() => {
+                notification.classList.add('notification-hide');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function handleSchemaButtonClick(event) {
+            const databaseSelect = document.getElementById('database_type');
+            if (!databaseSelect.value) {
+                event.preventDefault();
+                showNotification('error', 'Please select a database first');
+                return;
+            }
+            window.location.href = '/schema';
+        }
+
+        // Initialize everything when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDatabaseSelector();
+        });
+
+        function showAlert() {
+            alert("Please wait 30 seconds after submitting your question for the output to generate.");
+        }
+
+        function showLoadingOverlay() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            return true;
+        }
+
+        // Initialize everything when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDatabaseSelector();
+        });
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #8B5CF6;
+            --secondary: #C4B5FD;
+            --accent: #7C3AED;
+            --background: #F5F3FF;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text: #1F2937;
+            --input-bg: rgba(255, 255, 255, 0.9);
+            --button-yellow: #FFD700;
+            --infisign-blue: #4169E1;
+            --upload-green: #22C55E;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+            overflow-x: hidden;
+            background: 
+                linear-gradient(120deg, rgba(240, 245, 255, 0.95) 0%, rgba(230, 240, 255, 1) 100%),
+                radial-gradient(circle at top right, rgba(200, 220, 255, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at bottom left, rgba(190, 210, 255, 0.4) 0%, transparent 50%),
+                linear-gradient(135deg, #f0f4ff, #e6f0ff);
+            background-attachment: fixed;
+            color: var(--text);
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(90deg, rgba(100,100,255,.03) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(100,100,255,.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% -20%, rgba(200, 220, 255, 0.3), transparent 70%);
+            pointer-events: none;
+        }
+        .schema-button-small:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #cccccc;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .schema-button-small.button-disabled {
+            background-color: #E5E7EB !important;
+            color: #9CA3AF !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .schema-button-small.button-disabled:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .wave-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(45deg, 
+                    rgba(100, 150, 255, 0.02) 0px,
+                    rgba(100, 150, 255, 0.02) 2px,
+                    transparent 2px,
+                    transparent 8px
+                );
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        .floating-dots {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(rgba(100, 150, 255, 0.05) 1px, transparent 1px),
+                radial-gradient(rgba(100, 150, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+            animation: floatingDots 150s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes floatingDots {
+            0% {
+                background-position: 0 0, 20px 20px;
+            }
+            100% {
+                background-position: 1000px 1000px, 1020px 1020px;
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            border-radius: 20px;
+            width: 100%;
+            position: relative;
+        }
+
+        .logo-container {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .company-logo {
+            width: 150px;
+            height: auto;
+            object-fit: contain;
+        }
+
+        header h1 {
+            font-family: 'Inter', sans-serif;
+            color: #1F2937;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .ai-icon {
+            font-size: 2.5rem;
+            color: #4169E1;
+            margin-bottom: 1rem;
+            animation: float 3s ease-in-out infinite;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .input-group {
+            margin-bottom: 2rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.75rem;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid rgba(229, 231, 235, 0.8);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: var(--input-bg);
+            color: var(--text);
+        }
+
+        input[type="text"]:focus,
+        select:focus {
+            border-color: var(--infisign-blue);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(65, 105, 225, 0.2);
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%234169E1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2em;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        /* Modified button styles */
+        .primary-button {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        button {
+            background: var(--button-yellow);
+            color: var(--text);
+            border: none;
+            padding: 1.2rem 1rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        button i {
+            font-size: 1.1rem;
+        }
+
+        .schema-button {
+            background: var(--infisign-blue);
+            color: white;
+        }
+
+        .schema-button:hover {
+            box-shadow: 0 10px 20px rgba(65, 105, 225, 0.3);
+        }
+
+        .upload-button {
+            background: var(--upload-green);
+            color: white;
+            margin-top: 1rem; /* Add top margin for spacing */
+        }
+
+        .upload-button:hover {
+            box-shadow: 0 10px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .database-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .database-select {
+            flex: 1;
+        }
+
+        .schema-button-small {
+            background: var(--infisign-blue);
+            color: white;
+            padding: 1rem;
+            height: 48px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            position: relative;
+        }
+
+        .schema-button-small:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(65, 105, 225, 0.3);
+        }
+
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip::after {
+            content: "View the tables available";
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+
+            .logo-container {
+                position: static;
+                margin-bottom: 1rem;
+                transform: none;
+            }
+
+            .company-logo {
+                width: 100px;
+            }
+
+            .button-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        ::placeholder {
+            color: #9CA3AF;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--infisign-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-message {
+            color: var(--text);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-submessage {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .footer {
+            position: relative;
+            bottom: 0;
+            width: 100%;
+            padding: 1.5rem 2rem;
+            background: transparent;
+            text-align: center;
+            color: #1F2937;
+            font-size: 0.9rem;
+            z-index: 1;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .footer-links a {
+            text-decoration: none;
+            color: #4169E1;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--secondary);
+        }
+
+        .footer-links span {
+            color: rgba(31, 41, 55, 0.6);
+        }
+         /* Add styles to position elements side-by-side */
+        .question-output-row {
+            display: flex;
+            gap: 1rem; /* Adjust spacing between elements */
+        }
+        .question-output-row > div {
+            flex: 1; /* Allow elements to grow and shrink equally */
+        }
+        @media (max-width: 768px) {
+            .question-output-row {
+                flex-direction: column; /* Stack elements vertically on smaller screens */
+            }
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 5px;
+            color: white;
+            z-index: 1000;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .notification.success {
+            background-color: #4CAF50;
+        }
+
+        .notification.error {
+            background-color: #f44336;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Add disabled state styles */
+        select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        select option[disabled] {
+            color: #9CA3AF;
+        }
+        
+        /* Style for when no option is selected */
+        select:invalid {
+            color: #9CA3AF;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #cccccc;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .button-disabled {
+            background-color: #E5E7EB !important;
+            color: #9CA3AF !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .button-disabled:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+    <script>
+        function showAlert() {
+            alert("Please wait 30 seconds after submitting your question for the output to generate.");
+        }
+
+        function showLoadingOverlay() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            return true;
+        }
+    </script>
+</head>
+<body>
+    
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-message">Processing your request...</div>
+            <div class="loading-submessage">This may take up to 2 Minutes</div>
+        </div>
+    </div>
+
+    <div class="wave-bg"></div>
+    <div class="floating-dots"></div>
+    <div class="container">
+          </script>
+</head>
+<body>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-message">Processing your request...</div>
+            <div class="loading-submessage">This may take up to 2 Minutes</div>
+        </div>
+    </div>
+
+    <div class="wave-bg"></div>
+    <div class="floating-dots"></div>
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <img src="https://i.ibb.co/KpksSPy4/Whats-App-Image-2025-01-22-at-10-07-32-5fafe06e.jpg" alt="Company Logo" class="company-logo">
+            </div>
+            <i class="fas fa-brain ai-icon"></i>
+            <h1>AI Insights & Visualizations</h1>
+        </header>
+        <div class="card">
+            <form action="/generate" method="post" onsubmit="return showLoadingOverlay()">
+                <div class="database-row">
+                    <div class="database-select">
+                        <label for="database_type">Select Database:</label>
+                        <select id="database_type" name="database_type">
+                            <option value="">Select Database</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="postgresql">PostgreSQL</option>
+                        </select>
+                    </div>
+                    <button type="button" 
+                            class="schema-button-small tooltip" 
+                            onclick="handleSchemaButtonClick(event)"
+                            disabled>
+                        <i class="fas fa-database"></i>
+                    </button>
+                </div>
+                
+                <div class="question-output-row"> 
+                    <div class="input-group">
+                        <label for="question">Your Question</label>
+                        <input 
+                            type="text" 
+                            id="question"
+                            name="question" 
+                            placeholder="Example: A count of employees in each department?" 
+                            required
+                        >
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="output">Select Insight Type</label>
+                        <select name="output" id="output" required>
+                            <option value="" disabled selected>Select Insight Type</option>
+                            <option value="answer">Table Insight</option>
+                            <option value="plot">Plot Insight</option>
+                            <option value="both">Both (Table & Plot)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="button-container">
+                    <button type="submit" class="primary-button">
+                        <i class="fas fa-lightbulb"></i>
+                        Generate Insights
+                    </button>
+                    
+                    <button type="button" class="upload-button" onclick="window.location.href='/upload'">
+                        <i class="fas fa-upload"></i>
+                        Upload New Data
+                    </button>
+                </div>
+            </form>
+        </div>    
+    </div>
+    <footer class="footer">
+        <div class="footer-content">
+            <p>2025 by Entrans. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="https://www.thunai.ai/terms-of-service" target="_blank">Terms of Service</a>
+                <span>|</span>
+                <a href="https://www.thunai.ai/privacy-policy" target="_blank">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
